@@ -151,9 +151,9 @@ func (rc *RC) Load(previousEnv Env) (newEnv Env, err error) {
 	}
 
 	prelude := ""
-	if config.StrictEnv {
-		prelude = "set -euo pipefail && "
-	}
+	// if config.StrictEnv {
+	// 	prelude = "set -euo pipefail && "
+	// }
 
 	arg := fmt.Sprintf(
 		`%seval "$("%s" stdlib)" && __main__ source_env "%s"`,
@@ -171,7 +171,7 @@ func (rc *RC) Load(previousEnv Env) (newEnv Env, err error) {
 		cancel()
 	}()
 
-	cmd := exec.CommandContext(ctx, config.BashPath, "--noprofile", "--norc", "-c", arg)
+	cmd := exec.CommandContext(ctx, config.BashPath, "-c", arg)
 	cmd.Dir = wd
 	cmd.Env = newEnv.ToGoEnv()
 	cmd.Stderr = os.Stderr
