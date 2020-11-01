@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"mvdan.cc/sh/v3/expand"
 	"mvdan.cc/sh/v3/interp"
 	"mvdan.cc/sh/v3/syntax"
 )
@@ -176,8 +177,10 @@ func (rc *RC) Load(previousEnv Env) (newEnv Env, err error) {
 		var r *interp.Runner
 		var prog *syntax.File
 		// Create a new interpreter
-		// FIXME: pass the environment to the interpreter
-		r, err = interp.New(interp.StdIO(stdin, os.Stdout, os.Stderr))
+		r, err = interp.New(
+			interp.Env(expand.ListEnviron(newEnv.ToGoEnv()...)),
+			interp.StdIO(stdin, os.Stdout, os.Stderr),
+		)
 		if err != nil {
 			return
 		}
@@ -199,8 +202,7 @@ func (rc *RC) Load(previousEnv Env) (newEnv Env, err error) {
 		// TODO: re-implement some of the __main__ logic
 		prog, err = syntax.NewParser().Parse(
 			strings.NewReader(fmt.Sprintf(`source_env "%s"`, rc.Path())),
-			// FIXME: is that the right value?
-			rc.Path(),
+			"(source)",
 		)
 		if err != nil {
 			return
@@ -210,9 +212,19 @@ func (rc *RC) Load(previousEnv Env) (newEnv Env, err error) {
 			return
 		}
 
-		// TODO: extract the new environment variables
-
+		// Extract the new environment variables
 		// TODO: re-implement the PS1 check
+		newEnv2 := Env{}
+		r.Env.Each(func(name string, vr expand.Variable) bool {
+			fmt.Fprintf(os.Stderr, "newEnv: %s=%s\n", name, vr.String())
+			newEnv2[name] = vr.String()
+			return true
+		})
+		if newEnv2["PS1"] != "" {
+			logError("PS1 cannot be exported. For more information see https://github.com/direnv/direnv/wiki/PS1")
+		}
+		newEnv = newEnv2
+
 		return
 	}
 
