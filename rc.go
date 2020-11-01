@@ -12,6 +12,9 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"mvdan.cc/sh/v3/interp"
+	"mvdan.cc/sh/v3/syntax"
 )
 
 // RC represents the .envrc file
@@ -150,18 +153,6 @@ func (rc *RC) Load(previousEnv Env) (newEnv Env, err error) {
 		return
 	}
 
-	prelude := ""
-	// if config.StrictEnv {
-	// 	prelude = "set -euo pipefail && "
-	// }
-
-	arg := fmt.Sprintf(
-		`%seval "$("%s" stdlib)" && __main__ source_env "%s"`,
-		prelude,
-		direnv,
-		rc.Path(),
-	)
-
 	// Allow RC loads to be canceled with SIGINT
 	ctx, cancel := context.WithCancel(context.Background())
 	c := make(chan os.Signal, 1)
@@ -171,21 +162,81 @@ func (rc *RC) Load(previousEnv Env) (newEnv Env, err error) {
 		cancel()
 	}()
 
-	cmd := exec.CommandContext(ctx, config.BashPath, "-c", arg)
-	cmd.Dir = wd
-	cmd.Env = newEnv.ToGoEnv()
-	cmd.Stderr = os.Stderr
-
+	var stdin *os.File
 	if config.DisableStdin {
-		cmd.Stdin, err = os.Open(os.DevNull)
+		stdin, err = os.Open(os.DevNull)
 		if err != nil {
 			return
 		}
 	} else {
-		cmd.Stdin = os.Stdin
+		stdin = os.Stdin
 	}
 
-	if out, err := cmd.Output(); err == nil && len(out) > 0 {
+	if config.BashBuiltin == true || true {
+		var r *interp.Runner
+		var prog *syntax.File
+		// Create a new interpreter
+		// FIXME: pass the environment to the interpreter
+		r, err = interp.New(interp.StdIO(stdin, os.Stdout, os.Stderr))
+		if err != nil {
+			return
+		}
+
+		// Load the stdlib.sh in the interpreter
+
+		// FIXME: is the stdlib.sh name good here?
+		prog, err = syntax.NewParser().Parse(strings.NewReader(getStdlib(config)), "stdlib.sh")
+		if err != nil {
+			return
+		}
+		err = r.Run(ctx, prog)
+		if err != nil {
+			return
+		}
+
+		// Load the rc file
+
+		// TODO: re-implement some of the __main__ logic
+		prog, err = syntax.NewParser().Parse(
+			strings.NewReader(fmt.Sprintf(`source_env "%s"`, rc.Path())),
+			// FIXME: is that the right value?
+			rc.Path(),
+		)
+		if err != nil {
+			return
+		}
+		err = r.Run(ctx, prog)
+		if err != nil {
+			return
+		}
+
+		// TODO: extract the new environment variables
+
+		// TODO: re-implement the PS1 check
+		return
+	}
+
+	// Otherwise is the system Bash like before
+	prelude := ""
+	if config.StrictEnv {
+		prelude = "set -euo pipefail && "
+	}
+
+	arg := fmt.Sprintf(
+		`%seval "$("%s" stdlib)" && __main__ source_env "%s"`,
+		prelude,
+		direnv,
+		rc.Path(),
+	)
+
+	cmd := exec.CommandContext(ctx, config.BashPath, "-c", arg)
+	cmd.Dir = wd
+	cmd.Env = newEnv.ToGoEnv()
+	cmd.Stdin = stdin
+	cmd.Stderr = os.Stderr
+
+	var out []byte
+	if out, err = cmd.Output(); err == nil && len(out) > 0 {
 		var newEnv2 Env
 		newEnv2, err = LoadEnvJSON(out)
 		if err == nil {

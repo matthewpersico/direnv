@@ -7,4 +7,5 @@ require (
 	github.com/direnv/go-dotenv v0.0.0-20181227095604-4cce6d1a66f7
 	github.com/mattn/go-isatty v0.0.12
 	golang.org/x/mod v0.3.0
+	mvdan.cc/sh/v3 v3.2.0
 )
