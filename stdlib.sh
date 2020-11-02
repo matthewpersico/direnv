@@ -9,6 +9,7 @@
 # SC1117: Backslash is literal in "\n". Prefer explicit escaping: "\\n".
 # SC2059: Don't use variables in the printf format string. Use printf "..%s.." "$foo".
 
+# FIXME: not supported by gosu
 # shopt -s gnu_errfmt
 # shopt -s nullglob
 # shopt -s extglob
@@ -987,19 +988,20 @@ __main__() {
   exec 3>&1
   exec 1>&2
 
-  __dump_at_exit() {
-    local ret=$?
-    "$direnv" dump json "" >&3
-    trap - EXIT
-    exit "$ret"
-  }
-  trap __dump_at_exit EXIT
+  # FIXME
+  # __dump_at_exit() {
+  #   local ret=$?
+  #   "$direnv" dump json "" >&3
+  #   trap - EXIT
+  #   exit "$ret"
+  # }
+  # trap __dump_at_exit EXIT
 
   # load direnv libraries
-  for lib in "$direnv_config_dir/lib/"*.sh; do
-    # shellcheck disable=SC1090
-    source "$lib"
-  done
+  # for lib in "$direnv_config_dir/lib/"*.sh; do
+  #   # shellcheck disable=SC1090
+  #   source "$lib"
+  # done
 
   # load the global ~/.direnvrc if present
   if [[ -f $direnv_config_dir/direnvrc ]]; then

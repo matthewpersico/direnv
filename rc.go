@@ -201,7 +201,7 @@ func (rc *RC) Load(previousEnv Env) (newEnv Env, err error) {
 
 		// TODO: re-implement some of the __main__ logic
 		prog, err = syntax.NewParser().Parse(
-			strings.NewReader(fmt.Sprintf(`source_env "%s"`, rc.Path())),
+			strings.NewReader(fmt.Sprintf(`set -e; set -o pipefail; __main__ source_env "%s"`, rc.Path())),
 			"(source)",
 		)
 		if err != nil {
@@ -215,11 +215,12 @@ func (rc *RC) Load(previousEnv Env) (newEnv Env, err error) {
 		// Extract the new environment variables
 		// TODO: re-implement the PS1 check
 		newEnv2 := Env{}
-		r.Env.Each(func(name string, vr expand.Variable) bool {
-			fmt.Fprintf(os.Stderr, "newEnv: %s=%s\n", name, vr.String())
-			newEnv2[name] = vr.String()
-			return true
-		})
+		for name, vr := range r.Vars {
+			if vr.Exported {
+				fmt.Fprintf(os.Stderr, "newEnv: %s=%s\n", name, vr.String())
+				newEnv2[name] = vr.String()
+			}
+		}
 		if newEnv2["PS1"] != "" {
 			logError("PS1 cannot be exported. For more information see https://github.com/direnv/direnv/wiki/PS1")
 		}

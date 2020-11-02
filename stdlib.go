@@ -12,6 +12,7 @@ const StdLib = "#!/usr/bin/env bash\n" +
 	"# SC1117: Backslash is literal in \"\\n\". Prefer explicit escaping: \"\\\\n\".\n" +
 	"# SC2059: Don't use variables in the printf format string. Use printf \"..%s..\" \"$foo\".\n" +
 	"\n" +
+	"# FIXME: not supported by gosu\n" +
 	"# shopt -s gnu_errfmt\n" +
 	"# shopt -s nullglob\n" +
 	"# shopt -s extglob\n" +
@@ -990,19 +991,20 @@ const StdLib = "#!/usr/bin/env bash\n" +
 	"  exec 3>&1\n" +
 	"  exec 1>&2\n" +
 	"\n" +
-	"  __dump_at_exit() {\n" +
-	"    local ret=$?\n" +
-	"    \"$direnv\" dump json \"\" >&3\n" +
-	"    trap - EXIT\n" +
-	"    exit \"$ret\"\n" +
-	"  }\n" +
-	"  trap __dump_at_exit EXIT\n" +
+	"  # FIXME\n" +
+	"  # __dump_at_exit() {\n" +
+	"  #   local ret=$?\n" +
+	"  #   \"$direnv\" dump json \"\" >&3\n" +
+	"  #   trap - EXIT\n" +
+	"  #   exit \"$ret\"\n" +
+	"  # }\n" +
+	"  # trap __dump_at_exit EXIT\n" +
 	"\n" +
 	"  # load direnv libraries\n" +
-	"  for lib in \"$direnv_config_dir/lib/\"*.sh; do\n" +
-	"    # shellcheck disable=SC1090\n" +
-	"    source \"$lib\"\n" +
-	"  done\n" +
+	"  # for lib in \"$direnv_config_dir/lib/\"*.sh; do\n" +
+	"  #   # shellcheck disable=SC1090\n" +
+	"  #   source \"$lib\"\n" +
+	"  # done\n" +
 	"\n" +
 	"  # load the global ~/.direnvrc if present\n" +
 	"  if [[ -f $direnv_config_dir/direnvrc ]]; then\n" +
